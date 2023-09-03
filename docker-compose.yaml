@@ -1,0 +1,62 @@
+version: '3.8'
+services:
+  mongoclient:
+      image: mongoclient/mongoclient:latest
+      container_name: mongoclient
+      hostname: mongoclient
+      depends_on:
+        - mongodb
+      ports:
+        - 3000:3000
+  mongodb:
+    container_name: mongodb
+    image: mongo:3.5
+    hostname: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: hackbox
+      MONGO_INITDB_ROOT_PASSWORD: mongo_pass
+      MONGO_INITDB_DATABASE: hackbox
+    restart: on-failure
+    #network_mode: "host"
+    command: ["--auth", "--bind_ip", "0.0.0.0"]
+    ports:
+      - 27017:27017
+    volumes:
+      - ./data/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
+      #- ./data/mongodb:/data/db
+    extra_hosts:
+    - "hackbox.safehome.local:192.168.1.32"
+    - "vpn.safehome.local:192.168.1.32"
+  hackbox-client:
+    container_name: client
+    build:
+      context: ./hackbox_client
+      dockerfile: Dockerfile
+    # prod
+    command: npm run-script start
+    # dev
+    #command: npm run-script dev
+    volumes:
+      - ./hackbox_client/src/.env:/usr/hackbox/client/.env:ro
+    #network_mode: "host"
+    ports:
+      - 3700:3700
+    extra_hosts:
+    - "hackbox.safehome.local:192.168.1.32"
+    - "vpn.safehome.local:192.168.1.32"
+  hackbox-server:
+    container_name: server
+    build:
+      context: ./hackbox_server
+      dockerfile: Dockerfile
+    command: npm start
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./hackbox_server/src/.env:/usr/hackbox/server/.env:ro
+    #network_mode: "host"
+    ports:
+      - 3701:3701
+      - 3702:3702
+    extra_hosts:
+    - "hackbox.safehome.local:192.168.1.32"
+    - "vpn.safehome.local:192.168.1.32"
